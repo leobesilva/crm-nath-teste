@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { usePathname, useRouter } from "next/navigation";
-import { createSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 import { AuthProfile } from "@/lib/auth";
 
 type AuthContextValue = {
@@ -24,7 +24,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [loading, setLoading] = useState(() => isSupabaseConfigured());
-  const supabase = useMemo(() => (isSupabaseConfigured() ? createSupabaseBrowserClient() : null), []);
   const isLoginRoute = pathname?.startsWith("/login");
 
   async function loadProfile(currentSession: Session | null) {
@@ -54,12 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    if (!supabase) {
-      return;
-    }
-    const client = supabase;
+    let subscription: { unsubscribe: () => void } | null = null;
     async function initializeAuth() {
       try {
+        const client = await getSupabaseBrowserClient();
+        if (!active) return;
         const { data } = await client.auth.getSession();
         if (!active) return;
         setSession(data.session);
@@ -67,28 +65,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loadProfile(data.session);
         if (!data.session && !isLoginRoute) router.replace("/login");
         if (data.session && isLoginRoute) router.replace("/");
+        const { data: listener } = client.auth.onAuthStateChange(async (_event, nextSession) => {
+          setLoading(true);
+          setSession(nextSession);
+          setUser(nextSession?.user ?? null);
+          await loadProfile(nextSession);
+          setLoading(false);
+          if (!nextSession && !isLoginRoute) router.replace("/login");
+          if (nextSession && isLoginRoute) router.replace("/");
+        });
+        subscription = listener.subscription;
+      } catch {
+        if (!isLoginRoute) router.replace("/login");
       } finally {
         if (active) setLoading(false);
       }
     }
     initializeAuth();
-    const { data: listener } = client.auth.onAuthStateChange(async (_event, nextSession) => {
-      setLoading(true);
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      await loadProfile(nextSession);
-      setLoading(false);
-      if (!nextSession && !isLoginRoute) router.replace("/login");
-      if (nextSession && isLoginRoute) router.replace("/");
-    });
     return () => {
       active = false;
-      listener.subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
-  }, [isLoginRoute, router, supabase]);
+  }, [isLoginRoute, router]);
 
   async function signOut() {
-    await supabase?.auth.signOut();
+    const supabase = await getSupabaseBrowserClient();
+    await supabase.auth.signOut();
     setSession(null);
     setUser(null);
     setProfile(null);

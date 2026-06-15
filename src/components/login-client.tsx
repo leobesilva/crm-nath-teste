@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 export function LoginClient() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export function LoginClient() {
     setMessage("");
 
     try {
-      const supabase = createSupabaseBrowserClient();
+      const supabase = await getSupabaseBrowserClient();
       if (mode === "bootstrap") {
         const response = await fetch("/api/auth/bootstrap", {
           method: "POST",
