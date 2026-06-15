@@ -42,3 +42,6 @@ dev-server.log
 next-env.d.ts
 
 .env
+
+# local deployment secrets checklist
+variaveis-vercel.txt
