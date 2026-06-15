@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id        String   @id @default(uuid()) @db.Uuid
+  nome      String
+  email     String   @unique
+  role      String   @default("Comercial")
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now()) @map("criado_em")
+  leads     Lead[]   @relation("LeadResponsavel")
+  tasks     Task[]   @relation("TaskResponsavel")
+
+  @@map("profiles")
+}
+
+model Lead {
+  id                    String              @id @default(uuid()) @db.Uuid
+  nome                  String
+  cpfCnpj               String?             @map("cpf_cnpj")
+  telefone              String?
+  whatsapp              String?
+  email                 String?
+  instagram             String?
+  cidade                String?
+  estado                String?
+  origemId              String?             @map("origem_id") @db.Uuid
+  campanhaId            String?             @map("campanha_id") @db.Uuid
+  produtoInteresseId    String?             @map("produto_interesse_id") @db.Uuid
+  dorPrincipal          String?             @map("dor_principal")
+  momentoArtistico      String?             @map("momento_artistico")
+  etapaFunil            String              @default("Novo Lead") @map("etapa_funil")
+  statusComercial       String              @default("Novo Lead") @map("status_comercial")
+  temperatura           String              @default("Frio")
+  score                 Int                 @default(0)
+  responsavelId         String?             @map("responsavel_id") @db.Uuid
+  proximaAcao           String?             @map("proxima_acao")
+  dataProximaAcao       DateTime?           @map("data_proxima_acao")
+  ultimaInteracao       DateTime?           @map("ultima_interacao")
+  consentimentoContato  Boolean             @default(false) @map("consentimento_contato")
+  dataConsentimento     DateTime?           @map("data_consentimento")
+  origemConsentimento   String?             @map("origem_consentimento")
+  statusFinanceiro      String              @default("Sem informação") @map("status_financeiro")
+  valorPago             Decimal             @default(0) @map("valor_pago") @db.Decimal(12, 2)
+  valorVencido          Decimal             @default(0) @map("valor_vencido") @db.Decimal(12, 2)
+  valorAVencer          Decimal             @default(0) @map("valor_a_vencer") @db.Decimal(12, 2)
+  observacoes           String?
+  motivoPerda           String?             @map("motivo_perda")
+  criadoEm              DateTime            @default(now()) @map("criado_em")
+  atualizadoEm          DateTime            @updatedAt @map("atualizado_em")
+  deletadoEm            DateTime?           @map("deletado_em")
+  origem                Origin?             @relation(fields: [origemId], references: [id])
+  campanha              Campaign?           @relation(fields: [campanhaId], references: [id])
+  produtoInteresse      Product?            @relation(fields: [produtoInteresseId], references: [id])
+  responsavel           Profile?            @relation("LeadResponsavel", fields: [responsavelId], references: [id])
+  interactions          Interaction[]
+  tasks                 Task[]
+  opportunities         SalesOpportunity[]
+  rawEntries            LeadRawEntry[]
+
+  @@index([email])
+  @@index([cpfCnpj])
+  @@index([whatsapp])
+  @@map("leads")
+}
+
+model LeadRawEntry {
+  id                   String   @id @default(uuid()) @db.Uuid
+  fonte                String
+  payloadJson          Json     @map("payload_json")
+  nomeOriginal         String?  @map("nome_original")
+  telefoneOriginal     String?  @map("telefone_original")
+  emailOriginal        String?  @map("email_original")
+  instagramOriginal    String?  @map("instagram_original")
+  origemOriginal       String?  @map("origem_original")
+  campanhaOriginal     String?  @map("campanha_original")
+  statusProcessamento  String   @default("Pendente") @map("status_processamento")
+  leadId               String?  @map("lead_id") @db.Uuid
+  erroProcessamento    String?  @map("erro_processamento")
+  criadoEm             DateTime @default(now()) @map("criado_em")
+  lead                 Lead?    @relation(fields: [leadId], references: [id])
+
+  @@map("lead_raw_entries")
+}
+
+model IntegrationSource {
+  id             String   @id
+  nome           String
+  tipo           String
+  status         String   @default("Rascunho")
+  origemPadrao   String   @map("origem_padrao")
+  campanhaPadrao String?  @map("campanha_padrao")
+  produtoPadrao  String?  @map("produto_padrao")
+  webhookPath    String   @map("webhook_path")
+  webhookToken   String?  @unique @map("webhook_token")
+  provider       String?
+  accountName    String?  @map("account_name")
+  externalId     String?  @map("external_id")
+  fieldMapping   Json?    @map("field_mapping")
+  criadoEm       DateTime @default(now()) @map("criado_em")
+  atualizadoEm   DateTime @updatedAt @map("atualizado_em")
+
+  @@map("integration_sources")
+}
+
+model Interaction {
+  id          String   @id @default(uuid()) @db.Uuid
+  leadId      String   @map("lead_id") @db.Uuid
+  tipo        String
+  descricao   String
+  resultado   String?
+  criadoPor   String?  @map("criado_por") @db.Uuid
+  criadoEm    DateTime @default(now()) @map("criado_em")
+  lead        Lead     @relation(fields: [leadId], references: [id])
+
+  @@map("interactions")
+}
+
+model Task {
+  id             String    @id @default(uuid()) @db.Uuid
+  leadId         String    @map("lead_id") @db.Uuid
+  titulo         String
+  descricao      String?
+  tipo           String
+  status         String    @default("Pendente")
+  dataVencimento DateTime  @map("data_vencimento")
+  responsavelId  String?   @map("responsavel_id") @db.Uuid
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+  concluidoEm    DateTime? @map("concluido_em")
+  lead           Lead      @relation(fields: [leadId], references: [id])
+  responsavel    Profile?  @relation("TaskResponsavel", fields: [responsavelId], references: [id])
+
+  @@map("tasks")
+}
+
+model Product {
+  id            String             @id @default(uuid()) @db.Uuid
+  nome          String             @unique
+  categoria     String
+  preco         Decimal?           @db.Decimal(12, 2)
+  recorrente    Boolean            @default(false)
+  ativo         Boolean            @default(true)
+  leads         Lead[]
+  opportunities SalesOpportunity[]
+
+  @@map("products")
+}
+
+model Origin {
+  id        String     @id @default(uuid()) @db.Uuid
+  nome      String     @unique
+  ativo     Boolean    @default(true)
+  leads     Lead[]
+  campaigns Campaign[]
+
+  @@map("origins")
+}
+
+model Campaign {
+  id          String   @id @default(uuid()) @db.Uuid
+  nome        String
+  origemId    String?  @map("origem_id") @db.Uuid
+  dataInicio  DateTime? @map("data_inicio") @db.Date
+  dataFim     DateTime? @map("data_fim") @db.Date
+  investimento Decimal  @default(0) @db.Decimal(12, 2)
+  status      String    @default("Planejada")
+  observacoes String?
+  origem      Origin?   @relation(fields: [origemId], references: [id])
+  leads       Lead[]
+
+  @@map("campaigns")
+}
+
+model SalesOpportunity {
+  id             String    @id @default(uuid()) @db.Uuid
+  leadId         String    @map("lead_id") @db.Uuid
+  produtoId      String    @map("produto_id") @db.Uuid
+  valorProposto  Decimal?  @map("valor_proposto") @db.Decimal(12, 2)
+  etapa          String    @default("Interesse")
+  probabilidade  Int?
+  dataAbertura   DateTime  @default(now()) @map("data_abertura")
+  dataFechamento DateTime? @map("data_fechamento")
+  motivoPerda    String?   @map("motivo_perda")
+  observacoes    String?
+  lead           Lead      @relation(fields: [leadId], references: [id])
+  produto        Product   @relation(fields: [produtoId], references: [id])
+
+  @@map("sales_opportunities")
+}
