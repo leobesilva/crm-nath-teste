@@ -1,0 +1,12 @@
+
+> crm-estrada-artista@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.127:3000
+- Environments: .env
+✓ Ready in 1298ms
+
+○ Compiling /pipeline ...
+ GET /pipeline 200 in 10.3s (next.js: 6.3s, application-code: 4.1s)
