@@ -6,6 +6,7 @@ import { Badge, Card, EmptyState } from "@/components/ui";
 import { USER_ROLES, AuthProfile, UserRole } from "@/lib/auth";
 import { useAuth } from "@/components/auth-provider";
 import { Modal } from "@/components/modal";
+import { authHeaders } from "@/lib/headers";
 
 const emptyUserForm = {
   nome: "",
@@ -41,7 +42,7 @@ export function UsersClient() {
     setLoading(true);
     setMessage("");
     const response = await fetch("/api/users", {
-      headers: { Authorization: `Bearer ${session?.access_token}` },
+      headers: authHeaders(session?.access_token),
     });
     const payload = await response.json();
     setLoading(false);
@@ -57,7 +58,7 @@ export function UsersClient() {
     setMessage("");
     const response = await fetch("/api/users", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+      headers: { "Content-Type": "application/json", ...authHeaders(session?.access_token) },
       body: JSON.stringify(form),
     });
     const payload = await response.json();
@@ -74,7 +75,7 @@ export function UsersClient() {
   async function updateUser(id: string, input: Partial<Pick<AuthProfile, "role" | "ativo">>) {
     const response = await fetch("/api/users", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+      headers: { "Content-Type": "application/json", ...authHeaders(session?.access_token) },
       body: JSON.stringify({ id, ...input }),
     });
     const payload = await response.json();

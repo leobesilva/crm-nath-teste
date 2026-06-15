@@ -2,7 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export function readEnv(name: string) {
-  return process.env[name]?.trim().replace(/^["']|["']$/g, "");
+  const raw = process.env[name]?.trim().replace(/^["']|["']$/g, "");
+  const withoutName = raw?.startsWith(`${name}=`) ? raw.slice(name.length + 1) : raw;
+  return withoutName?.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, "");
 }
 
 export function isSupabaseConfigured() {

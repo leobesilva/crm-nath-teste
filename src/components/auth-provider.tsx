@@ -5,6 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 import { AuthProfile } from "@/lib/auth";
+import { authHeaders } from "@/lib/headers";
 
 type AuthContextValue = {
   user: User | null;
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const timeout = window.setTimeout(() => controller.abort(), 10000);
     try {
       const response = await fetch("/api/auth/profile", {
-        headers: { Authorization: `Bearer ${currentSession.access_token}` },
+        headers: authHeaders(currentSession.access_token),
         signal: controller.signal,
       });
       if (!response.ok) {
